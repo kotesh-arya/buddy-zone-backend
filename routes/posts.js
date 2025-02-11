@@ -35,8 +35,10 @@ router.get("/:id", async (req, res) => {
 // Create a new post (Requires Authentication)
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { content, comments } = req.body;
-    const { uid, email,firstName, lastName , userImage } = req.user;
+    const {
+      postData: { content },
+    } = req.body;
+    const { uid, email, firstName, lastName, userImage } = req.user;
 
     const newPost = {
       content,
@@ -50,7 +52,7 @@ router.post("/", authMiddleware, async (req, res) => {
       lastName: lastName,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      comments: comments || [],
+      comments: [],
       userImage: userImage || "",
       userId: uid,
     };
