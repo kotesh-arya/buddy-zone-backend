@@ -1,19 +1,19 @@
 import { Timestamp } from "firebase-admin/firestore";
 
 const createUser = ({
-  firstname,
-  lastname,
+  firstName,
+  lastName,
   username,
   userImage = "",
   bio = "",
   website = "",
 }) => {
   if (
-    typeof firstname !== "string" ||
-    typeof lastname !== "string" ||
+    typeof firstName !== "string" ||
+    typeof lastName !== "string" ||
     typeof username !== "string"
   ) {
-    throw new Error("firstname, lastname, and username must be strings.");
+    throw new Error("firstName, lastName, and username must be strings.");
   }
   if (userImage && typeof userImage !== "string") {
     throw new Error("userImage must be a string.");
@@ -26,8 +26,8 @@ const createUser = ({
   }
 
   return {
-    firstname,
-    lastname,
+    firstName,
+    lastName,
     username,
     userImage,
     bio,
