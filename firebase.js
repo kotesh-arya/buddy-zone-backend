@@ -6,7 +6,9 @@ import { readFileSync } from "fs";
 dotenv.config();
 
 // Read service account key (skip this if already initialized)
-const serviceAccount = JSON.parse(readFileSync("serviceAccountKey.json", "utf8"));
+const serviceAccount = JSON.parse(
+  readFileSync("serviceAccountKey.json", "utf8")
+);
 
 if (!admin.apps.length) {
     admin.initializeApp({
