@@ -68,9 +68,22 @@ router.post("/", authMiddleware, async (req, res) => {
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
     const postRef = db.collection("posts").doc(req.params.id);
-    await postRef.update({ ...req.body, updatedAt: new Date().toISOString() });
+
+    // Extract only the 'content' field
+    const updatedContent = req.body.postData?.content;
+
+    if (!updatedContent) {
+      return res.status(400).json({ error: "Content field is required" });
+    }
+
+    await postRef.update({
+      content: updatedContent,
+      updatedAt: new Date().toISOString(),
+    });
+
     res.json({ message: "Post updated successfully" });
   } catch (error) {
+    console.error("Error updating post:", error);
     res.status(500).json({ error: "Error updating post" });
   }
 });
