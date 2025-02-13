@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 
 const authMiddleware = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Extract Bearer token
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
@@ -10,15 +10,16 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
 
-    req.user = {
+    // Fetch user details from Firebase Auth
+    const userRecord = await admin.auth().getUser(decodedToken.uid);
+  req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
-      username: decodedToken.email.split("@")[0], // Extract username
-      firstName: decodedToken.name?.split(" ")[0] || "User",
-      lastName: decodedToken.name?.split(" ")[1] || "",
-      userImage: decodedToken.picture || "",
+      username: userRecord.displayName || decodedToken.email.split("@")[0], // Extract username
+      firstName: userRecord.displayName?.split(" ")[0] || "User",
+      lastName: userRecord.displayName?.split(" ")[1] || "",
+      userImage: userRecord.photoURL || "",
     };
-    // console.log(req.user, "USER details from auth middleware");
 
     next(); // Proceed to the next middleware or route handler
   } catch (error) {
