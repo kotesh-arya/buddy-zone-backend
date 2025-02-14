@@ -1,6 +1,6 @@
 import express from "express";
 import db from "../firebase.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { authenticate } from "../middlewares/authenticate.js";
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create a new post (Requires Authentication)
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   try {
     const {
       postData: { content },
@@ -65,7 +65,7 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 // Update a post (Requires Authentication)
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id", authenticate, async (req, res) => {
   try {
     const postRef = db.collection("posts").doc(req.params.id);
 
@@ -89,7 +89,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 // Delete a post (Requires Authentication)
-router.delete("/:id", authMiddleware, async (req, res) => {
+router.delete("/:id", authenticate, async (req, res) => {
   try {
     const postRef = db.collection("posts").doc(req.params.id);
     const postDoc = await postRef.get();

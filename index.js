@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
 import commentRoutes from "./routes/comments.js";
+import authRoutes from "./routes/auth.js";
 
 dotenv.config(); // Load environment variables
 
@@ -16,9 +17,10 @@ app.use(cors());
 app.use(express.json()); // Parse JSON bodies
 
 // Use authentication middleware globally if needed
-// app.use(authMiddleware); // Uncomment this if you want auth for all routes
+// app.use(authenticate); // Uncomment this if you want auth for all routes
 
 // Use the routes
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/posts", postRoutes);
