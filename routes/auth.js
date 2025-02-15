@@ -16,9 +16,7 @@ const generateToken = (userId) => {
 };
 
 // Current date in a standardized format
-export const formatDate = () => {
-  return new Date().toISOString();
-};
+export const formatDate = () => new Date().toISOString();
 
 // ✅ Sign up
 router.post("/signup", async (req, res) => {
@@ -57,14 +55,23 @@ router.post("/signup", async (req, res) => {
     // Generate JWT token
     const token = generateToken(newUserRef.id);
 
+    // Set HTTP-only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, 
+      sameSite: "strict", // CSRF protection
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     // Return user data (excluding password)
     res
       .status(201)
-      .json({ token, userId: newUserRef.id, ...newUser, password: undefined });
+      .json({ userId: newUserRef.id, ...newUser, password: undefined });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
 // ✅ Log In
 router.post("/login", async (req, res) => {
   try {
@@ -87,11 +94,15 @@ router.post("/login", async (req, res) => {
 
     const token = generateToken(userDoc.id);
 
-    res.json({
-      token,
-      userId: userDoc.id,
-      ...userData,
+    // Set HTTP-only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
+    res.json({ userId: userDoc.id, ...userData, password: undefined });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -112,6 +123,15 @@ router.get("/me", authenticate, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+});
+
+// ✅ Logout (Clears cookie)
+router.post("/logout", (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0), // Expire immediately
+  });
+  res.json({ message: "Logged out successfully" });
 });
 
 export default router;
