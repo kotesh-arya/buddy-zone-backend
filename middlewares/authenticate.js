@@ -1,30 +1,34 @@
 import jwt from "jsonwebtoken";
 
-
-// ✅ Middleware: Verify token
+// ✅ Middleware: Verify token from cookies
 const authenticate = async (req, res, next) => {
-  console.log("whole TOKEN", req.headers.authorization);
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    console.log("token", token);
-
-    const decodedToken =  jwt.decode(token);
-    console.log(decodedToken, "deconded token");
-    console.log(
-      new Date(decodedToken.exp * 1000).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      })
-    );
-
+    // Extract token from cookies
+    const token = req.cookies?.token;
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No token provided" });
     }
-    console.log("process.env.JWT_SECRET", process.env.JWT_SECRET);
+
+
+    // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
+
+    // Attach user details to request object
+    req.user = {
+      uid: decoded.userId,
+      email: decoded.email,
+      firstName: decoded.firstName,
+      lastName: decoded.lastName,
+      userImage: decoded.userImage,
+    };
+
     next();
   } catch (error) {
-    res.status(403).json({ message: "Invalid or expired token" });
+    return res
+      .status(403)
+      .json({ message: "Invalid or expired token", error: error.message });
   }
 };
 

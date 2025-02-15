@@ -35,9 +35,7 @@ router.get("/:id", async (req, res) => {
 // Create a new post (Requires Authentication)
 router.post("/", authenticate, async (req, res) => {
   try {
-    const {
-      postData: { content },
-    } = req.body;
+    const { content } = req.body;
     const { uid, email, firstName, lastName, userImage } = req.user;
 
     const newPost = {
