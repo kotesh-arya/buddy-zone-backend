@@ -22,6 +22,24 @@ router.get("/", async (req, res) => {
       .json({ error: "Failed to retrieve users", details: error.message });
   }
 });
+router.get("/suggestions", async (req, res) => {
+  try {
+    const snapshot = await usersCollection
+      .where("isFollowed", "==", false) // Filter users who are not followed
+      .limit(4) // Limit results to 4 users
+      .get();
+
+    const users = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+
+    res.json(users); // Returns an empty array if no users match
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to retrieve suggested users",
+      details: error.message,
+    });
+  }
+});
+
 
 // 🔹 Get a user by userId
 router.get("/:userId", async (req, res) => {

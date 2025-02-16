@@ -27,7 +27,9 @@ router.post("/signup", async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
 
     // Check if user already exists
-    const userSnapshot = await usersCollection.where("email", "==", email).get();
+    const userSnapshot = await usersCollection
+      .where("email", "==", email)
+      .get();
     if (!userSnapshot.empty) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -51,30 +53,37 @@ router.post("/signup", async (req, res) => {
       userImage,
       bio: "",
       website: "",
+      isFollowed: false,
     };
 
     // Store user in Firestore
     const newUserRef = await usersCollection.add(newUser);
 
     // Generate JWT token with additional user info
-    const token = generateToken(newUserRef.id, email, firstName, lastName, userImage);
+    const token = generateToken(
+      newUserRef.id,
+      email,
+      firstName,
+      lastName,
+      userImage
+    );
 
     // Set HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, 
+      secure: true,
       sameSite: "strict", // CSRF protection
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     // Return user data (excluding password)
-    res.status(201).json({ userId: newUserRef.id, email, firstName, lastName, userImage });
-
+    res
+      .status(201)
+      .json({ userId: newUserRef.id, email, firstName, lastName, userImage });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // ✅ Log In
 router.post("/login", async (req, res) => {
@@ -82,7 +91,9 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     // Find user by email
-    const userSnapshot = await usersCollection.where("email", "==", email).get();
+    const userSnapshot = await usersCollection
+      .where("email", "==", email)
+      .get();
     if (userSnapshot.empty) {
       return res.status(400).json({ message: "User not found" });
     }
@@ -97,7 +108,13 @@ router.post("/login", async (req, res) => {
     }
 
     // Generate JWT token with additional user info
-    const token = generateToken(userDoc.id, userData.email, userData.firstName, userData.lastName, userData.userImage);
+    const token = generateToken(
+      userDoc.id,
+      userData.email,
+      userData.firstName,
+      userData.lastName,
+      userData.userImage
+    );
 
     // Set HTTP-only cookie
     res.cookie("token", token, {
@@ -115,12 +132,10 @@ router.post("/login", async (req, res) => {
       lastName: userData.lastName,
       userImage: userData.userImage,
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // ✅ Get current user
 router.get("/me", authenticate, async (req, res) => {
