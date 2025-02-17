@@ -40,3 +40,7 @@ app.use("/api/posts", postRoutes);
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+app.use("/", (req, res) => {
+  res.json("Buddy zone server running ");
+});
