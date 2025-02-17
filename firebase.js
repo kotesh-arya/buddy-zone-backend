@@ -9,7 +9,7 @@ console.log("current environment", process.env.ENVIRONMENT);
 const serviceAccount =
   process.env.ENVIRONMENT === "dev"
     ? JSON.parse(readFileSync("serviceAccountKey.json", "utf8"))
-    : JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    : JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.replace(/\\n/g, '\n'));
 
 if (!admin.apps.length) {
   admin.initializeApp({
