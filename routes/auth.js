@@ -140,7 +140,7 @@ router.post("/login", async (req, res) => {
 // ✅ Get current user
 router.get("/me", authenticate, async (req, res) => {
   try {
-    const userRef = usersCollection.doc(req.userId);
+    const userRef = usersCollection.doc(req.user.uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
@@ -148,7 +148,7 @@ router.get("/me", authenticate, async (req, res) => {
     }
 
     const userData = userDoc.data();
-    res.json({ userId: req.userId, ...userData });
+    res.json({ userId: req.user.uid, ...userData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
