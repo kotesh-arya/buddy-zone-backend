@@ -159,7 +159,10 @@ router.get("/me", authenticate, async (req, res) => {
 router.post("/logout", (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
+    secure: true, // ✅ Required for HTTPS in production
+    sameSite: "None", // ✅ Required for cross-origin cookies
     expires: new Date(0), // Expire immediately
+    path: "/", // ✅ Ensure it matches the login cookie path
   });
   res.json({ message: "Logged out successfully" });
 });
