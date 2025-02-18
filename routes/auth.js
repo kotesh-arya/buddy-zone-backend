@@ -95,7 +95,8 @@ router.post("/login", async (req, res) => {
       .where("email", "==", email)
       .get();
     if (userSnapshot.empty) {
-      return res.status(400).json({ message: "User not found" });
+      res.status(400).json({ message: "User not found" });
+      return;
     }
 
     const userDoc = userSnapshot.docs[0];
