@@ -4,7 +4,7 @@ import { authenticate } from "../middlewares/authenticate.js";
 
 const router = express.Router();
 
-// Get all comments (Public)
+// Get all comments (Public) 
 router.get("/", async (req, res) => {
     try {
         const commentsSnapshot = await db.collection("comments").get();
@@ -18,7 +18,23 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Get comments by postId (Public)
+// Get a single comment by commentId (Public) 
+router.get("/:id", async (req, res) => {
+    try {
+        const commentRef = db.collection("comments").doc(req.params.id);
+        const commentDoc = await commentRef.get();
+
+        if (!commentDoc.exists) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        res.json({ id: commentDoc.id, ...commentDoc.data() });
+    } catch (error) {
+        res.status(500).json({ error: "Error fetching comment" });
+    }
+});
+
+// Get comments by postId (Public) 💻 🔌
 router.get("/post/:postId", async (req, res) => {
     try {
         const commentsSnapshot = await db
@@ -37,23 +53,8 @@ router.get("/post/:postId", async (req, res) => {
     }
 });
 
-// Get a single comment by commentId (Public)
-router.get("/:id", async (req, res) => {
-    try {
-        const commentRef = db.collection("comments").doc(req.params.id);
-        const commentDoc = await commentRef.get();
 
-        if (!commentDoc.exists) {
-            return res.status(404).json({ message: "Comment not found" });
-        }
-
-        res.json({ id: commentDoc.id, ...commentDoc.data() });
-    } catch (error) {
-        res.status(500).json({ error: "Error fetching comment" });
-    }
-});
-
-// Add a new comment (Requires Authentication)
+// Add a new comment (Requires Authentication) 💻 🔌
 router.post("/", authenticate, async (req, res) => {
     try {
         const { postId, text } = req.body;
@@ -86,7 +87,7 @@ router.post("/", authenticate, async (req, res) => {
     }
 });
 
-// Update a comment (Requires Authentication)
+// Update a comment (Requires Authentication) 💻 🔌
 router.put("/:id", authenticate, async (req, res) => {
     try {
         const commentRef = db.collection("comments").doc(req.params.id);
@@ -118,13 +119,13 @@ router.put("/:id", authenticate, async (req, res) => {
 });
 
 /**
- * Upvote a comment: Adds or removes the userId from the upVotedBy array
+ * Upvote a comment: Adds or removes the userId from the upVotedBy array 💻 🔌
  */
 router.post("/:id/upvote", authenticate, async (req, res) => {
     try {
         const { id } = req.params;
         const { uid } = req.user;
-        
+
         const commentRef = db.collection("comments").doc(id);
         const commentDoc = await commentRef.get();
 
@@ -133,19 +134,19 @@ router.post("/:id/upvote", authenticate, async (req, res) => {
         }
 
         const commentData = commentDoc.data();
-        const upVotedBy = commentData.votes?.upVotedBy || [];
+        const upvotedBy = commentData.votes?.upvotedBy || [];
         const downvotedBy = commentData.votes?.downvotedBy || [];
 
-        if (upVotedBy.includes(uid)) {
-            // Remove user from upVotedBy array (toggle)
+        if (upvotedBy.includes(uid)) {
+            // Remove user from upvotedBy array (toggle)
             await commentRef.update({
-                "votes.upVotedBy": upVotedBy.filter(userId => userId !== uid)
+                "votes.upvotedBy": upvotedBy.filter(userId => userId !== uid)
             });
             return res.json({ message: "Upvote removed" });
         } else {
-            // Add user to upVotedBy and remove from downvotedBy (if exists)
+            // Add user to upvotedBy and remove from downvotedBy (if exists)
             await commentRef.update({
-                "votes.upVotedBy": [...upVotedBy, uid],
+                "votes.upvotedBy": [...upvotedBy, uid],
                 "votes.downvotedBy": downvotedBy.filter(userId => userId !== uid)
             });
             return res.json({ message: "Upvoted successfully" });
@@ -156,7 +157,7 @@ router.post("/:id/upvote", authenticate, async (req, res) => {
 });
 
 /**
- * Downvote a comment: Adds or removes the userId from the downvotedBy array
+ * Downvote a comment: Adds or removes the userId from the downvotedBy array 💻 🔌
  */
 router.post("/:id/downvote", authenticate, async (req, res) => {
     try {
@@ -171,7 +172,7 @@ router.post("/:id/downvote", authenticate, async (req, res) => {
         }
 
         const commentData = commentDoc.data();
-        const upVotedBy = commentData.votes?.upVotedBy || [];
+        const upvotedBy = commentData.votes?.upvotedBy || [];
         const downvotedBy = commentData.votes?.downvotedBy || [];
 
         if (downvotedBy.includes(uid)) {
@@ -181,10 +182,10 @@ router.post("/:id/downvote", authenticate, async (req, res) => {
             });
             return res.json({ message: "Downvote removed" });
         } else {
-            // Add user to downvotedBy and remove from upVotedBy (if exists)
+            // Add user to downvotedBy and remove from upvotedBy (if exists)
             await commentRef.update({
                 "votes.downvotedBy": [...downvotedBy, uid],
-                "votes.upVotedBy": upVotedBy.filter(userId => userId !== uid)
+                "votes.upvotedBy": upvotedBy.filter(userId => userId !== uid)
             });
             return res.json({ message: "Downvoted successfully" });
         }
@@ -193,7 +194,7 @@ router.post("/:id/downvote", authenticate, async (req, res) => {
     }
 });
 
-// Delete a comment (Requires Authentication)
+// Delete a comment (Requires Authentication) 💻 🔌
 router.delete("/:id", authenticate, async (req, res) => {
     try {
         const commentRef = db.collection("comments").doc(req.params.id);
