@@ -101,4 +101,35 @@ router.delete("/:id", authenticate, async (req, res) => {
   }
 });
 
+
+// DELETE all comments of a post by postId
+router.delete("/:postId/comments", async (req, res) => {
+  try {
+      const { postId } = req.params;
+
+      // Reference the comments collection
+      const commentsRef = db.collection("comments");
+
+      // Query to get all comments associated with the postId
+      const snapshot = await commentsRef.where("postId", "==", postId).get();
+
+      if (snapshot.empty) {
+          return res.status(404).json({ message: "No comments found for this post" });
+      }
+
+      // Batch delete all comments
+      const batch = db.batch();
+      snapshot.forEach((doc) => {
+          batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      res.status(200).json({ message: "All comments deleted successfully" });
+  } catch (error) {
+      console.error("Error deleting comments:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 export default router;
