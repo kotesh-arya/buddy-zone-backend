@@ -41,39 +41,39 @@ router.get("/suggestions", async (req, res) => {
 });
 
 
-// 🔹 Get a user by userId
-router.get("/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const userDoc = await usersCollection.doc(userId).get();
+// // 🔹 Get a user by userId
+// router.get("/:userId", async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const userDoc = await usersCollection.doc(userId).get();
 
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
+//     if (!userDoc.exists) {
+//       return res.status(404).json({ error: "User not found" });
+//     }
 
-    res.json({ _id: userDoc.id, ...userDoc.data() });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to retrieve user", details: error.message });
-  }
-});
+//     res.json({ _id: userDoc.id, ...userDoc.data() });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ error: "Failed to retrieve user", details: error.message });
+//   }
+// });
 
-// 🔹 Create a new user
-router.post("/", async (req, res) => {
-  try {
-    const newUser = createUser(req.body);
+// // 🔹 Create a new user
+// router.post("/", async (req, res) => {
+//   try {
+//     const newUser = createUser(req.body);
 
-    // Add new document with auto-generated ID
-    const docRef = await usersCollection.add(newUser);
+//     // Add new document with auto-generated ID
+//     const docRef = await usersCollection.add(newUser);
 
-    res.status(201).json({ id: docRef.id, ...newUser });
-  } catch (error) {
-    res
-      .status(400)
-      .json({ error: "Invalid user data", details: error.message });
-  }
-});
+//     res.status(201).json({ id: docRef.id, ...newUser });
+//   } catch (error) {
+//     res
+//       .status(400)
+//       .json({ error: "Invalid user data", details: error.message });
+//   }
+// });
 
 // 🔹 Update/Edit an existing user
 router.put("/:id", async (req, res) => {
@@ -101,99 +101,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// 🔹 Get all bookmarks for a user
-router.get("/:userId/bookmarks", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const userDoc = await usersCollection.doc(userId).get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const userData = userDoc.data();
-    const bookmarks = userData.bookmarks || []; // Default to empty array if no bookmarks exist
-
-    res.json({ bookmarks });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to retrieve bookmarks", details: error.message });
-  }
-});
-
-// 🔹 Add a post to a user's bookmarks
-router.post("/:userId/bookmark/:postId", async (req, res) => {
-  try {
-    const { userId, postId } = req.params;
-
-    const userDocRef = usersCollection.doc(userId);
-    const userDoc = await userDocRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Get existing bookmarks or create an empty array
-    const userData = userDoc.data();
-    const bookmarks = userData.bookmarks || [];
-
-    if (bookmarks.includes(postId)) {
-      return res.status(400).json({ message: "Post is already bookmarked" });
-    }
-
-    // Add postId to bookmarks array
-    await userDocRef.update({
-      bookmarks: [...bookmarks, postId],
-    });
-
-    res.status(200).json({
-      message: "Post bookmarked successfully",
-      bookmarks: [...bookmarks, postId],
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to bookmark post", details: error.message });
-  }
-});
-
-// 🔹 Remove a post from a user's bookmarks
-router.post("/:userId/remove-bookmark/:postId", async (req, res) => {
-  try {
-    const { userId, postId } = req.params;
-
-    const userDocRef = usersCollection.doc(userId);
-    const userDoc = await userDocRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const userData = userDoc.data();
-    const bookmarks = userData.bookmarks || [];
-
-    if (!bookmarks.includes(postId)) {
-      return res.status(400).json({ message: "Post is not bookmarked" });
-    }
-
-    // Remove postId from bookmarks array
-    const updatedBookmarks = bookmarks.filter((id) => id !== postId);
-
-    await userDocRef.update({
-      bookmarks: updatedBookmarks,
-    });
-
-    res.status(200).json({
-      message: "Post removed from bookmarks",
-      bookmarks: updatedBookmarks,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to remove bookmark", details: error.message });
-  }
-});
 
 // 🔹 Follow a user
 router.post("/:userId/follow/:followUserId", async (req, res) => {

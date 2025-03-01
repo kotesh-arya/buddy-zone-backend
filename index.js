@@ -7,7 +7,7 @@ import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
 import commentRoutes from "./routes/comments.js";
 import authRoutes from "./routes/auth.js";
-
+import bookmarks from "./routes/bookmarks.js"
 dotenv.config(); // Load environment variables
 
 const app = express();
@@ -35,6 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/bookmarks", bookmarks);
 
 // Start Server
 app.listen(PORT, () => {
