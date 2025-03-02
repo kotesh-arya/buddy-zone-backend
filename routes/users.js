@@ -2,6 +2,7 @@ import express from "express";
 import db from "../firebase.js";
 import createUser from "../models/userModel.js";
 import { Timestamp } from "firebase-admin/firestore";
+import { authenticate } from "../middlewares/authenticate.js";
 
 const router = express.Router();
 const usersCollection = db.collection("users");
@@ -22,16 +23,34 @@ router.get("/", async (req, res) => {
       .json({ error: "Failed to retrieve users", details: error.message });
   }
 });
-router.get("/suggestions", async (req, res) => {
+router.get("/suggestions", authenticate, async (req, res) => {
   try {
     const snapshot = await usersCollection
       .where("isFollowed", "==", false) // Filter users who are not followed
       .limit(4) // Limit results to 4 users
       .get();
 
-    const users = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+    let users = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
 
-    res.json(users); // Returns an empty array if no users match
+    // Remove the current user from the list
+    users = users.filter((user) => user._id !== req.user.uid);
+
+    console.log("Current User ID from auth middleware:", req.user.uid);
+
+    const currentUserRef = usersCollection.doc(req.user.uid);
+    const currentUserSnapshot = await currentUserRef.get();
+
+    if (!currentUserSnapshot.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const currentUserData = currentUserSnapshot.data();
+
+    res.json({
+      users,
+      followingUsers: currentUserData.followingUsers || [],
+      followersUsers: currentUserData.followersUsers || [],
+    });
   } catch (error) {
     res.status(500).json({
       error: "Failed to retrieve suggested users",
@@ -39,6 +58,9 @@ router.get("/suggestions", async (req, res) => {
     });
   }
 });
+
+
+
 
 
 // // 🔹 Get a user by userId
@@ -103,16 +125,17 @@ router.put("/:id", async (req, res) => {
 
 
 // 🔹 Follow a user
-router.post("/:userId/follow/:followUserId", async (req, res) => {
+router.post("/follow/:followUserId", authenticate, async (req, res) => {
   try {
-    const { userId, followUserId } = req.params;
-
-    if (userId === followUserId) {
+    const { followUserId } = req.params; // User to be followed
+    const followerId = req.user.uid; // Current authenticated user
+console.log("follower Id(current user Id)", followerId);
+    if (followUserId === followerId) {
       return res.status(400).json({ error: "You cannot follow yourself." });
     }
 
-    const userRef = usersCollection.doc(userId);
-    const followUserRef = usersCollection.doc(followUserId);
+    const userRef = usersCollection.doc(followerId); // Current user
+    const followUserRef = usersCollection.doc(followUserId); // User to be followed
 
     const [userDoc, followUserDoc] = await Promise.all([
       userRef.get(),
@@ -126,34 +149,37 @@ router.post("/:userId/follow/:followUserId", async (req, res) => {
     const userData = userDoc.data();
     const followUserData = followUserDoc.data();
 
-    const isFollowing = userData.following?.includes(followUserId);
-
-    if (isFollowing) {
+    if (userData.following?.includes(followUserId)) {
       return res.status(400).json({ error: "User is already being followed." });
     }
 
-    // Update the following list of the current user
-    await userRef.update({
-      following: [...(userData.following || []), followUserId],
-    });
+    // Update following list of the current user
+    const updatedFollowing = [...(userData.following || []), followUserId];
+    await userRef.update({ following: updatedFollowing });
 
-    // Update the followers list of the user being followed
-    await followUserRef.update({
-      followers: [...(followUserData.followers || []), userId],
-    });
+    // Update followers list of the user being followed
+    const updatedFollowers = [...(followUserData.followers || []), followerId];
+    await followUserRef.update({ followers: updatedFollowers });
 
-    res.status(200).json({ message: "User followed successfully." });
+    res.status(200).json({
+      message: "User followed successfully.",
+      updatedFollowing,
+      updatedFollowers,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to follow user", details: error.message });
+    res.status(500).json({
+      error: "Failed to follow user",
+      details: error.message,
+    });
   }
 });
 
+
 // 🔹 Unfollow a user
-router.post("/:userId/unfollow/:unfollowUserId", async (req, res) => {
+router.post("/unfollow/:unfollowUserId", async (req, res) => {
   try {
-    const { userId, unfollowUserId } = req.params;
+    const { unfollowUserId } = req.params;
+    const userId = req.user.uid; // Current authenticated user
 
     if (userId === unfollowUserId) {
       return res.status(400).json({ error: "You cannot unfollow yourself." });
@@ -174,27 +200,62 @@ router.post("/:userId/unfollow/:unfollowUserId", async (req, res) => {
     const userData = userDoc.data();
     const unfollowUserData = unfollowUserDoc.data();
 
-    const isFollowing = userData.following?.includes(unfollowUserId);
-
-    if (!isFollowing) {
+    if (!userData.following?.includes(unfollowUserId)) {
       return res.status(400).json({ error: "User is not being followed." });
     }
 
-    // Remove the unfollowed user from following list
-    await userRef.update({
-      following: userData.following.filter((id) => id !== unfollowUserId),
-    });
+    // Remove user from following list
+    const updatedFollowing = userData.following.filter((id) => id !== unfollowUserId);
+    await userRef.update({ following: updatedFollowing });
 
-    // Remove the user from the unfollowed user's followers list
-    await unfollowUserRef.update({
-      followers: unfollowUserData.followers.filter((id) => id !== userId),
-    });
+    // Remove user from unfollowed user's followers list
+    const updatedFollowers = unfollowUserData.followers.filter((id) => id !== userId);
+    await unfollowUserRef.update({ followers: updatedFollowers });
 
-    res.status(200).json({ message: "User unfollowed successfully." });
+    res.status(200).json({
+      message: "User unfollowed successfully.",
+      updatedFollowing,
+      updatedFollowers,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to unfollow user", details: error.message });
+    res.status(500).json({
+      error: "Failed to unfollow user",
+      details: error.message,
+    });
+  }
+});
+
+
+
+// Get a user's followers
+router.get("/followers/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const followersRef = db.collection("followers").doc(userId);
+    const followersDoc = await followersRef.get();
+
+    res.status(200).json({
+      followers: followersDoc.exists ? followersDoc.data().followers : [],
+    });
+  } catch (error) {
+    console.error("Error fetching followers:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Get a user's following list
+router.get("/following/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const followingRef = db.collection("following").doc(userId);
+    const followingDoc = await followingRef.get();
+
+    res.status(200).json({
+      following: followingDoc.exists ? followingDoc.data().following : [],
+    });
+  } catch (error) {
+    console.error("Error fetching following list:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
