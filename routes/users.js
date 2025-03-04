@@ -98,7 +98,7 @@ router.get("/suggestions", authenticate, async (req, res) => {
 // });
 
 // 🔹 Update/Edit an existing user
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {  // ⏳
   try {
     const userId = req.params.id;
     const userDoc = usersCollection.doc(userId);
@@ -129,7 +129,7 @@ router.post("/follow/:followUserId", authenticate, async (req, res) => {
   try {
     const { followUserId } = req.params; // User to be followed
     const followerId = req.user.uid; // Current authenticated user
-console.log("follower Id(current user Id)", followerId);
+    console.log("follower Id(current user Id)", followerId);
     if (followUserId === followerId) {
       return res.status(400).json({ error: "You cannot follow yourself." });
     }
@@ -176,7 +176,7 @@ console.log("follower Id(current user Id)", followerId);
 
 
 // 🔹 Unfollow a user
-router.post("/unfollow/:unfollowUserId", async (req, res) => {
+router.post("/unfollow/:unfollowUserId", authenticate, async (req, res) => {
   try {
     const { unfollowUserId } = req.params;
     const userId = req.user.uid; // Current authenticated user
@@ -225,38 +225,5 @@ router.post("/unfollow/:unfollowUserId", async (req, res) => {
   }
 });
 
-
-
-// Get a user's followers
-router.get("/followers/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const followersRef = db.collection("followers").doc(userId);
-    const followersDoc = await followersRef.get();
-
-    res.status(200).json({
-      followers: followersDoc.exists ? followersDoc.data().followers : [],
-    });
-  } catch (error) {
-    console.error("Error fetching followers:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// Get a user's following list
-router.get("/following/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const followingRef = db.collection("following").doc(userId);
-    const followingDoc = await followingRef.get();
-
-    res.status(200).json({
-      following: followingDoc.exists ? followingDoc.data().following : [],
-    });
-  } catch (error) {
-    console.error("Error fetching following list:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 
 export default router;
