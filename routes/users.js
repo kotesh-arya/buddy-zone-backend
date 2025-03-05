@@ -35,7 +35,6 @@ router.get("/suggestions", authenticate, async (req, res) => {
     // Remove the current user from the list
     users = users.filter((user) => user._id !== req.user.uid);
 
-    console.log("Current User ID from auth middleware:", req.user.uid);
 
     const currentUserRef = usersCollection.doc(req.user.uid);
     const currentUserSnapshot = await currentUserRef.get();
@@ -98,7 +97,7 @@ router.get("/suggestions", authenticate, async (req, res) => {
 // });
 
 // 🔹 Update/Edit an existing user
-router.put("/:id", async (req, res) => {  // ⏳
+router.put("/:id", async (req, res) => {
   try {
     const userId = req.params.id;
     const userDoc = usersCollection.doc(userId);
@@ -109,19 +108,26 @@ router.put("/:id", async (req, res) => {  // ⏳
     }
 
     const updatedData = {
-      ...req.body,
+      ...req.body.userData,
       updatedAt: Timestamp.now(),
     };
-
+    console.log("to be updated data ", updatedData);
     await userDoc.set(updatedData, { merge: true });
 
-    res.json({ message: "User updated successfully", updatedData });
+    // Fetch the updated user data
+    const updatedUser = await userDoc.get();
+
+    res.json({
+      message: "User updated successfully",
+      user: { userId: updatedUser.id, ...updatedUser.data() },
+    });
   } catch (error) {
     res
       .status(500)
       .json({ error: "Failed to update user", details: error.message });
   }
 });
+
 
 
 // 🔹 Follow a user
