@@ -28,12 +28,8 @@ router.get("/users/:userId", async (req, res) => {
     const postsRef = db.collection("posts");
     const snapshot = await postsRef.where("userId", "==", userId).get();
 
-    if (snapshot.empty) {
-      return res.status(404).json({ message: "No posts found for this user" });
-    }
-
-    // Extract data from Firestore documents
-    const posts = snapshot.docs.map((doc) => ({
+    // Return an empty array if no posts are found
+    const posts = snapshot.empty ? [] : snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
