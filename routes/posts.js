@@ -134,11 +134,13 @@ router.delete("/:postId/comments", async (req, res) => {
     const snapshot = await commentsRef.where("postId", "==", postId).get();
 
     if (snapshot.empty) {
-      // Nothing to delete – respond with 200 but no message
-      return res.status(200).end(); // or .send() or .json() with empty body
+      // No comments found – reset count just in case, and return
+      const postRef = db.collection("posts").doc(postId);
+      await postRef.update({ commentCount: 0 });
+      return res.status(200).end();
     }
 
-    // Delete comments if found
+    // Batch delete all related comments
     const batch = db.batch();
     snapshot.forEach((doc) => {
       batch.delete(doc.ref);
@@ -146,12 +148,17 @@ router.delete("/:postId/comments", async (req, res) => {
 
     await batch.commit();
 
+    // Reset comment count to 0
+    const postRef = db.collection("posts").doc(postId);
+    await postRef.update({ commentCount: 0 });
+
     return res.status(200).json({ message: "All comments deleted successfully" });
   } catch (error) {
     console.error("Error deleting comments:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 

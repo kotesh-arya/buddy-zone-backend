@@ -1,6 +1,7 @@
 import express from "express";
 import db from "../firebase.js";
 import { authenticate } from "../middlewares/authenticate.js";
+import admin from "firebase-admin";
 
 const router = express.Router();
 
@@ -57,35 +58,47 @@ router.get("/post/:postId", async (req, res) => {
 // Add a new comment (Requires Authentication) 💻 🔌
 router.post("/", authenticate, async (req, res) => {
     try {
-        const { postId, text } = req.body;
-        const { uid, email, firstName, lastName, userImage } = req.user;
-
-        if (!postId || !text) {
-            return res.status(400).json({ error: "Post ID and text are required" });
-        }
-
-        const newComment = {
-            postId,
-            text,
-            username: email,
-            firstName: firstName,
-            lastName: lastName,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            userImage: userImage || "",
-            userId: uid,
-            votes: {
-                upvotedBy: [],
-                downvotedBy: []
-            }
-        };
-
-        const commentRef = await db.collection("comments").add(newComment);
-        res.json({ id: commentRef.id, ...newComment });
+      const { postId, text } = req.body;
+      const { uid, email, firstName, lastName, userImage } = req.user;
+  
+      if (!postId || !text) {
+        return res
+          .status(400)
+          .json({ error: "Post ID and text are required" });
+      }
+  
+      const newComment = {
+        postId,
+        text,
+        username: email,
+        firstName: firstName,
+        lastName: lastName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userImage: userImage || "",
+        userId: uid,
+        votes: {
+          upvotedBy: [],
+          downvotedBy: [],
+        },
+      };
+  
+      // Add the comment
+      const commentRef = await db.collection("comments").add(newComment);
+  
+      // Increment the commentCount on the related post
+      const postRef = db.collection("posts").doc(postId);
+      await postRef.update({
+        commentCount: admin.firestore.FieldValue.increment(1),
+      });
+  
+      res.json({ id: commentRef.id, ...newComment });
     } catch (error) {
-        res.status(500).json({ error: "Error adding comment" });
+      console.error("Error adding comment:", error);
+      res.status(500).json({ error: "Error adding comment" });
     }
-});
+  });
+  
 
 // Update a comment (Requires Authentication) 💻 🔌
 router.put("/:id", authenticate, async (req, res) => {
@@ -197,24 +210,38 @@ router.post("/:id/downvote", authenticate, async (req, res) => {
 // Delete a comment (Requires Authentication) 💻 🔌
 router.delete("/:id", authenticate, async (req, res) => {
     try {
-        const commentRef = db.collection("comments").doc(req.params.id);
-        const commentDoc = await commentRef.get();
-
-        if (!commentDoc.exists) {
-            return res.status(404).json({ message: "Comment not found" });
-        }
-
-        // Ensure the user deleting is the owner of the comment
-        if (commentDoc.data().userId !== req.user.uid) {
-            return res.status(403).json({ error: "Unauthorized to delete this comment" });
-        }
-
-        await commentRef.delete();
-        res.json({ message: "Comment deleted successfully" });
+      const commentRef = db.collection("comments").doc(req.params.id);
+      const commentDoc = await commentRef.get();
+  
+      if (!commentDoc.exists) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+  
+      const commentData = commentDoc.data();
+  
+      // Ensure the user deleting is the owner of the comment
+      if (commentData.userId !== req.user.uid) {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized to delete this comment" });
+      }
+  
+      // Delete the comment
+      await commentRef.delete();
+  
+      // Decrement the commentCount on the related post
+      const postRef = db.collection("posts").doc(commentData.postId);
+      await postRef.update({
+        commentCount: admin.firestore.FieldValue.increment(-1),
+      });
+  
+      res.json({ message: "Comment deleted successfully" });
     } catch (error) {
-        res.status(500).json({ error: "Error deleting comment" });
+      console.error("Error deleting comment:", error);
+      res.status(500).json({ error: "Error deleting comment" });
     }
-});
+  });
+  
 
 
 
